@@ -10,28 +10,46 @@
         #game { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
         #ui { position: absolute; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; pointer-events: none; color: #fff; font-weight: bold; }
         .box { background: rgba(0,0,0,0.7); border: 2px solid #fff; padding: 5px 10px; }
-        #controls { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; }
+        
+        #hp-container { width: 100px; height: 15px; background: #333; border: 2px solid #fff; margin-top: 5px; }
+        #hp-bar { width: 100%; height: 100%; background: #0f0; transition: width 0.2s; }
+
+        #controls { position: absolute; bottom: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; align-items: flex-end; pointer-events: none; }
         #dpad { width: 120px; height: 120px; position: relative; pointer-events: auto; }
         .btn { position: absolute; width: 40px; height: 40px; background: rgba(255,255,255,0.2); border: 2px solid #fff; border-radius: 5px; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; }
         #up { top: 0; left: 40px; } #down { bottom: 0; left: 40px; } #left { top: 40px; left: 0; } #right { top: 40px; right: 0; }
-        #action { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,0,0,0.4); border: 3px solid #f00; color: white; font-weight: bold; pointer-events: auto; margin-bottom: 20px; display: flex; justify-content: center; align-items: center; }
+        
+        .action-btns { display: flex; gap: 15px; pointer-events: auto; margin-bottom: 10px; }
+        .action-circle { width: 70px; height: 70px; border-radius: 50%; color: white; font-weight: bold; display: flex; justify-content: center; align-items: center; font-size: 14px;}
+        #jumpBtn { background: rgba(0, 255, 0, 0.4); border: 3px solid #0f0; }
+        #attackBtn { background: rgba(255, 0, 0, 0.4); border: 3px solid #f00; }
+        
         #menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #050510; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; pointer-events: auto; }
         button { padding: 15px 30px; font-size: 20px; font-weight: bold; background: #000; color: #0ff; border: 3px solid #0ff; margin-top: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
     <canvas id="game"></canvas>
+    
     <div id="ui">
-        <div class="box">FISH: <span id="fish">0</span> | LVL: <span id="lvl">1</span></div>
+        <div class="box">
+            <div>LVL: <span id="lvl">1</span> | FISH: <span id="fish">0</span></div>
+            <div id="hp-container"><div id="hp-bar"></div></div>
+        </div>
         <div class="box" id="zone">MEADOW</div>
     </div>
+
     <div id="controls">
         <div id="dpad">
             <div class="btn" id="up">▲</div><div class="btn" id="down">▼</div>
             <div class="btn" id="left">◀</div><div class="btn" id="right">▶</div>
         </div>
-        <div id="action">CLAW</div>
+        <div class="action-btns">
+            <div class="action-circle" id="jumpBtn">JUMP</div>
+            <div class="action-circle" id="attackBtn">CLAW</div>
+        </div>
     </div>
+
     <div id="menu">
         <h1 style="color:#0ff; font-size:32px; text-align:center;">MEOW-KNIGHT</h1>
         <button id="start">START</button>
@@ -44,29 +62,73 @@ let W = canvas.width = window.innerWidth;
 let H = canvas.height = window.innerHeight;
 window.addEventListener('resize', () => { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; });
 
-// --- IMAGE LOADING ---
-// Change these names if your images are named differently!
-const catImg = new Image();
-catImg.src = 'cat_idle.png';
-let catLoaded = false;
-catImg.onload = () => { catLoaded = true; console.log("Cat image loaded!"); };
-catImg.onerror = () => { console.log("Could not find cat_idle.png. Using fallback square."); };
+// --- IMAGES ---
+const idleImg = new Image();
+idleImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAACSCAYAAABMi0qyAAAAAXNSR0IArs4c6QAAAwZJREFUaIHtmk9IVEEcxz9rdQrS/Y8iupoi4VVBKupYSAVdgsKDxy614KGgLnayuoToQfIiGCy4xw3xkIcWlaXdi8ISYfmylq2tHUWoQ3R4HWQe78+s7mqB2nxhYd/s/H7v95uZfZ/9zSz8Cy2trpnVtAHUqTrGMosOA1Wb1PFKUTQG6jGEsAx+9ffDxpann89998ZAfSWfltqCQcvOSiExlzbXPxTIZPMAxAfjHkPZlphLW5FVFUF8MM7o1GhtEdiNJ25cckRUcwRu2SPwuT/czYndWOkA4OnElNkcDQFQKJWR729dv+LpXwc45ntyJmX6A0FC4QihcMQylo7dDiyPhhDm2PMEAGdOt/Jx7T0A3V2dZLI5AJpbYqzk3/Ji7Il3Fty5xdo7uHj+HJlsjr7eHppbYqpsvWNgCGG+ml+yrk+e8FEolQG4d3tQOWZKPXz8zJHv3QfDym+jltZRliaTJtOeyWQIYcoP7WSyS0Um5TrwB4Lk360CTrCo5PDoplNrU5SXs7P09fZQKJU9VALFUrZrvViyjKuKQEZhJxPA5oYANJm0/j9psGiw1AoWxzQaQpjJZAoAVcmjejp71oE/EAQgFI5UzsGmY44Lf8tweXOLcKCB5eVl1j99JhIKksnmKBSLnKpvINrWNbzyZvFRxQikYu0dHjKptO+SZ0e0Afz8vUeeaDJpHQFpMmky7YtMsD19yWRKSSZVyWM1DI2Mm7BdqQC0NkUBKH//ZnWWVQtgVS4VF9LrhUXAuxlXMQKpyZmUNcIqMrnhosmkpXWgdUjRJp/1fb3dlXxaymTz3Lx8wbufsrS6Zibm0qYhhHnt6oBpCOF4yTa7jWcMqomg5hTcbKwqBXvYxelpR0rKCKSDPf8+MIQwz3a2+74opqqSMSjWwcJ8Gqi+ajtgbHRjrRo2OhaSe4Cq2U/U0tLaQYcUbfJOumo7CFWbm0x2qZ7Ojr9QDI2Mm183f1gHVfKwKpPNWXAZuHPfsZj+3nagPGuzV23gLLpgl6pNpmLHmzykUhkD/AEiREJigNmJAwAAAABJRU5ErkJggg==';
+
+const runImg = new Image();
+runImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAADmCAYAAADcOAVlAAAAAXNSR0IArs4c6QAAA31JREFUaIHtm01IVFEUx/8vdNUi6FlSBDmTEn2BUEGY4TKQWrQRChduihZNQy6ycuOmrKCEdCFNiwghcNnspBaJOoMfJMgwxTjjDIhgOYs+JMLFbRH3dd/9eO+NM6Ay57fzcu+Zc+8b7/+881dgWzKVybGpTI4FGd+lmwQADcnJQOM1XpksFYtKFn/a210/KxmYJpoCKwEK2WUUsstIzqRc49GuqDaYJQ/wvR7Yu8eYQbQrinfxEUubAc8iOZNSsuCLhzsulpcBAIRs29IGEBmbmGYAsPbtKwDg2pVLynzPx1hYWUU+twgAOHG0STvHOYOlYpHJzz2dLeA3q0Vb63kkZ2a9A4Rs2wrZtsUDicEKK6s4d/aMNoCyBX44nNhonAHA+obypfTn9oM+16rexwObiEIQW4qsASat0F5psgaYNAHwuVAA9xWuu+qNumBaIF86xltZ1AaTJgCGS9XrZhY1wZgBz0LWBlkTNpUB4L72jLpgCiLfmWULizZAZ6SHAUDbhVaXsMx+zgMAnt+/5X+IAHC947LVEG70FBYlA/mL8v7DFABgd62l3YIibVyhQrZtDTwbdCaub7DSdEEWFQ6JC0EQBLFDoUKTCk2vICUVmk+HX7ND9XUAgOXVNdy92WV19w8x4H+tqJxBZ6SH8UKz+eRx1O3bDwDggWRKboGIVWogYqNxNjYxzUxlnxNN1zcD/CtVYzr8E081n3bG+HYe3rtT2jYIopqpdmmT8ZK2QNroBWmjYQudkR7W0hS2Up9SyKSzSIwnkBhPIGTbjjYqAeTny/Xx48QkUl8yAAB5sSuA2JgXJ/AmDO/gyGjPQAzCpS2dLQBQxdVXonh3H/jXFjJuwcTC/BzyuUXtYoIgfCDfmXxnkYr7zlytRgafBLMHgvjOnvbA4Mu3AIBjRw4bX7pq5IUV9Z1lK8D07kgQ25hqf2eidqB3kIr7ztrvAX+10XXzZHGpvO8M6F95AvvOovf8KvbGmbi+wUrTBZO/TOJCEARB7FCo0KRC0ytI2b6zPEc5g+7+IcYLTZPvLHrTZf/pvS9b5zvzQrMh3OiMLczPAQBePOqjPjtBBKXapU2GfGeVimqjsYfS0hS2YqNx9utgvasJY+yhyM+X66PoO/PFIp6+czpbgK4JY7QHeO8kcuOq61PE/yoTFwMV8J19f5nyuUX8/PHdqId/AY/KwCQhpG+QAAAAAElFTkSuQmCC';
+
+const attackImg = new Image();
+attackImg.src = 'data:image/png;base64,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';
+
+const damageImg = new Image();
+damageImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAABECAYAAACI7LWAAAAAAXNSR0IArs4c6QAAAhZJREFUWIXtlz9oE1Ecxz8ndRCHYJI2pDQmtlURoZNCVyehuHSIg1NGJw8cOujipnWRow5Flw6FgDc4tJQOilhsCdQpEAr+qUqyRFOhgxSpcB3Ke7y79x53KUg73Hc6fve+3/v+3ru7H1/4H9j4vB0kqQGcMi2sNNZDBFNNYMDmopjN8G1nRxL+Tk3B711tnRN9ejGbsWlKXMjlJE+2UF9dC3587dDYbAHg1lyNKGr11TXpLJEDt+biLXj9OVDJ87dvhhz17SAK1YETvRknopKNAgBP5xeCkUIegE63h7i+M31LWy/3QJz5y1dLwblsjvzgEPnBIUkWwlEBRxWYe1EH4MpYme/bXwC4evkijc2PAIycr9BsbbE4Nyt51jexMjpOebjA8soKk9ev0en2jOtCPYk23rzdkLWzpx1JnrlbM+6ZEQ+fPAv1e+/BI+PXmCJFioR4d2la+4jUmjba+iGD5Z9oI6u48em1YxWII6simkBSssDxOwidgleqBmJzkjqQAl6pGqg3kpDBMBe8UjVw277T3DOPDLft22ej6kLFxJl/ADT3BnDbviP2KdTCUaH1anMhEG3BiqhQnHCKFCcQaeRJI0+/kUc7xmI2g+8vkTTyyML9x88DOEwrAOXhAgC9Xz/l4k63R7O1BSBTi/VFev9hHdAjj9UBHCYWNa2YIk80tWg9RUXiIk/saPuzf8R5kjQzHQAFTUzi2AWxogAAAABJRU5ErkJggg==';
+
+const dodgeImg = new Image();
+dodgeImg.src = 'data:image/png;base64,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';
+
+const deathImg = new Image();
+deathImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAACSCAYAAAAkeMiKAAAAAXNSR0IArs4c6QAAA/VJREFUeJztms9LG0EUx78RSw+lSBNBFKnRVqR4VRD7BxSkLfTSQ+nBo5c2tIUe6qW3Wi8S7EGaS8CCkKsSLGgPijHUFIpFtESTCGJIm4nY0oP0sD3Y2c7s700m0cL7gGR3kux7OztZ32dngPNIKpvTvLSpoMkqUDi9JgW0alNFs90b7cEW5BnTA56MjACVY9XxERB3Utmc1h5scf1SdygUcP2QR/RLMLe4ou3vHSC9sQUAiIxGTB/mbXOLK8ouhaceiIxGEI1H9f2G9IAYfOb+LalHGt4DRlT2gOlAbkmoDC4lkGdM4wefnIlrnW2tpg8/uHdbaXDA5j5wJRjC1tcsAKC/rxfpjYzquDrSGeUZ06bfzgEAblzrQldHGxaSSQwNDuCgVMbm1jbeTb9W2gumW7HI/mFJD14vTGeTZ0xbWk5JbUcVBgB4PjaqfAzYMj4xJf3WH794WZf/hgRBEAThmYapmVWweqqZqxvmGdPagy2nalYHbCsioxvatSlNgJfkdmcrqplKOdHhB55bXNHyjGl37zzU8oyZtlX3gkQqm5MC8eCHs7NSEqp6QCoyxYMODfY7flGVIflWM5XBLROwSmJ9ZV3fVq1nupqJbjjc2xOIJea1Qm4XQH31zOSGT1+90cdBuOe6Sc9Uo98HukOhgNXPq956JvWAmISoZ79+kxQRBEEQ54SGzhkZA4fTayiojg6XR7U8ON821ooqesSxvuNVslWFXKwcI5xeQ2HoJoZ7e6quEx2/KBanxcqxqQd4e10SsHIEMQlxu5Yy3XMPWMGTqCUB10FoRJw948nVRVQ5bo5Yq6i63geWllPgghKNR3ECICrou3Ge0S+O1y6WmNe6Otr0/fL3b0hvZPDk2SMAahzRcQxs7+1jcfUjAGAhmdTbu0OhgCpB1RNwup6iHXVeDauIq2M5acW3RTs6k4krgiAIgiCI/wLuBNW6gW8xEeF2LL76NeaqExC1TXxtD7b4SqTqAtPJiC7+LeG9qLunJyQikzNxy8CiLZ+MjHjWdtcEYol5DQAKuV309/Wa3ufrTY0W7fWZgeMYiCXmtUsXAvjy+ZMe/KBUlqZvjOtNOV7HgG0C4xNT2lGF4aBUxtDgADI7BWR2Ctjc2oa42nIs8V5accvxOt3fBMgKzv9+/vi3itppwooHLwqrrouV45qfHREEQRAEQXjm3IlJwxKwExO/dqRcTPxICVCFmADWcsLFxI+U+EqAL26zkhNAntb1Uw17GgPGuSMRKynxg2sC3I4WkknJjjhWZuRnEDomINpR8+VWZHYKSH5YdTUjP4ugTZNWdnZkh9GMyIoIgiAIgmg4ZEYAmdEpZEbVQmZ05mb0B308PsqsjTcxAAAAAElFTkSuQmCC';
+
+const jumpImg = new Image();
+jumpImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAACSCAYAAABMi0qyAAAAAXNSR0IArs4c6QAAA/VJREFUeJztms9LG0EUx78RSw+lSBNBFKnRVqR4VRD7BxSkLfTSQ+nBo5c2tIUe6qW3Wi8S7EGaS8CCkKsSLGgPijHUFIpFtESTCGJIm4nY0oP0sD3Y2c7s700m0cL7gGR3kux7OztZ32dngPNIKpvTvLSpoMkqUDi9JgW0alNFs90b7cEW5BnTA56MjACVY9XxERB3Utmc1h5scf1SdygUcP2QR/RLMLe4ou3vHSC9sQUAiIxGTB/mbXOLK8ouhaceiIxGEI1H9f2G9IAYfOb+LalHGt4DRlT2gOlAbkmoDC4lkGdM4wefnIlrnW2tpg8/uHdbaXDA5j5wJRjC1tcsAKC/rxfpjYzquDrSGeUZ06bfzgEAblzrQldHGxaSSQwNDuCgVMbm1jbeTb9W2gumW7HI/mFJD14vTGeTZ0xbWk5JbUcVBgB4PjaqfAzYMj4xJf3WH794WZf/hgRBEAThmYapmVWweqqZqxvmGdPagy2nalYHbCsioxvatSlNgJfkdmcrqplKOdHhB55bXNHyjGl37zzU8oyZtlX3gkQqm5MC8eCHs7NSEqp6QCoyxYMODfY7flGVIflWM5XBLROwSmJ9ZV3fVq1nupqJbjjc2xOIJea1Qm4XQH31zOSGT1+90cdBuOe6Sc9Uo98HukOhgNXPq956JvWAmISoZ79+kxQRBEEQ54SGzhkZA4fTayiojg6XR7U8ON821ooqesSxvuNVslWFXKwcI5xeQ2HoJoZ7e6quEx2/KBanxcqxqQd4e10SsHIEMQlxu5Yy3XMPWMGTqCUB10FoRJw948nVRVQ5bo5Yq6i63geWllPgghKNR3ECICrou3Ge0S+O1y6WmNe6Otr0/fL3b0hvZPDk2SMAahzRcQxs7+1jcfUjAGAhmdTbu0OhgCpB1RNwup6iHXVeDauIq2M5acW3RTs6k4krgiAIgiCI/wLuBNW6gW8xEeF2LL76NeaqExC1TXxtD7b4SqTqAtPJiC7+LeG9qLunJyQikzNxy8CiLZ+MjHjWdtcEYol5DQAKuV309/Wa3ufrTY0W7fWZgeMYiCXmtUsXAvjy+ZMe/KBUlqZvjOtNOV7HgG0C4xNT2lGF4aBUxtDgADI7BWR2Ctjc2oa42nIs8V5accvxOt3fBMgKzv9+/vi3itppwooHLwqrrouV45qfHREEQRAEQXjm3IlJwxKwExO/dqRcTPxICVCFmADWcsLFxI+U+EqAL26zkhNAntb1Uw17GgPGuSMRKynxg2sC3I4WkknJjjhWZuRnEDomINpR8+VWZHYKSH5YdTUjP4ugTZNWdnZkh9GMyIoIgiAIgmg4ZEYAmdEpZEbVQmZ05mb0B308PsqsjTcxAAAAAElFTkSuQmCC';
 
 // --- GAME STATE ---
 let isPlaying = false;
-let player = { x: W/2, y: H/2, size: 48, speed: 4, dir: 'down' };
+let isDead = false;
+let player = { x: W/2, y: H/2, size: 64, speed: 4, dir: 'down', attackTimer: 0, hp: 100, invulnTimer: 0, jumpTimer: 0, isMoving: false };
 let keys = { up: false, down: false, left: false, right: false };
 let mobileDir = null;
 let camera = { x: 0, y: 0 };
 let fish = 0;
 let level = 1;
 
-// --- CONTROLS ---
+// Dummy Enemy
+let enemy = { x: W/2 + 300, y: H/2, size: 30, speed: 1.5, hitTimer: 0 };
+
+// --- ROCKS (OBSTACLES) ---
+let rocks = [
+    { x: W/2 - 150, y: H/2 - 150, w: 80, h: 80 },
+    { x: W/2 + 100, y: H/2 - 200, w: 100, h: 100 },
+    { x: W/2 - 250, y: H/2 + 100, w: 120, h: 60 },
+    { x: W/2 + 200, y: H/2 + 150, w: 60, h: 60 }
+];
+
+function checkRockCollision(x, y) {
+    // If jumping, ignore rock collisions
+    if (player.jumpTimer > 0) return false;
+    
+    const pW = 30; // Player collision box width
+    const pH = 30; // Player collision box height
+    for (let r of rocks) {
+        if (x + pW/2 > r.x - r.w/2 &&
+            x - pW/2 < r.x + r.w/2 &&
+            y + pH/2 > r.y - r.h/2 &&
+            y - pH/2 < r.y + r.h/2) {
+            return true;
+        }
+    }
+    return false;
+}
+
 window.addEventListener('keydown', e => {
     if(e.key === 'w' || e.key === 'ArrowUp') keys.up = true;
     if(e.key === 's' || e.key === 'ArrowDown') keys.down = true;
     if(e.key === 'a' || e.key === 'ArrowLeft') keys.left = true;
     if(e.key === 'd' || e.key === 'ArrowRight') keys.right = true;
+    if(e.code === 'Space') attack();
+    if(e.code === 'ShiftLeft' || e.code === 'ShiftRight') jump();
 });
 window.addEventListener('keyup', e => {
     if(e.key === 'w' || e.key === 'ArrowUp') keys.up = false;
@@ -82,80 +144,187 @@ function bindBtn(id, dir) {
 }
 bindBtn('up', 'up'); bindBtn('down', 'down'); bindBtn('left', 'left'); bindBtn('right', 'right');
 
-document.getElementById('action').addEventListener('touchstart', e => { e.preventDefault(); attack(); }, {passive:false});
-window.addEventListener('keydown', e => { if(e.code === 'Space') attack(); });
+document.getElementById('jumpBtn').addEventListener('touchstart', e => { e.preventDefault(); jump(); }, {passive:false});
+document.getElementById('attackBtn').addEventListener('touchstart', e => { e.preventDefault(); attack(); }, {passive:false});
 
 document.getElementById('start').addEventListener('click', () => {
     document.getElementById('menu').style.display = 'none';
     isPlaying = true;
 });
 
-// --- GAME LOGIC ---
+function jump() {
+    if(!isPlaying || isDead || player.jumpTimer > 0) return;
+    player.jumpTimer = 30; // Jump duration in frames (longer to clear rocks)
+}
+
 function attack() {
-    if(!isPlaying) return;
-    // Simple visual attack (flash red)
-    ctx.fillStyle = 'rgba(255,0,0,0.3)';
-    ctx.fillRect(0,0,W,H);
+    if(!isPlaying || isDead || player.jumpTimer > 0) return;
+    player.attackTimer = 20; 
+    
+    // Check if we hit the enemy
+    let dist = Math.hypot(enemy.x - player.x, enemy.y - player.y);
+    if (dist < 100 && enemy.hitTimer <= 0) {
+        enemy.hitTimer = 60; // Enemy dies for 1 second
+        fish += 10;
+        document.getElementById('fish').innerText = fish;
+    }
 }
 
 function update() {
-    if(!isPlaying) return;
+    if(!isPlaying || isDead) return;
+    
+    if (player.attackTimer > 0) player.attackTimer--;
+    if (player.invulnTimer > 0) player.invulnTimer--;
+    if (player.jumpTimer > 0) player.jumpTimer--;
 
     let dx = 0, dy = 0;
-    if(keys.up || mobileDir === 'up') { dy = -1; player.dir = 'up'; }
-    if(keys.down || mobileDir === 'down') { dy = 1; player.dir = 'down'; }
-    if(keys.left || mobileDir === 'left') { dx = -1; player.dir = 'left'; }
-    if(keys.right || mobileDir === 'right') { dx = 1; player.dir = 'right'; }
+    player.isMoving = false;
+    
+    if(keys.up || mobileDir === 'up') { dy = -1; player.dir = 'up'; player.isMoving = true; }
+    if(keys.down || mobileDir === 'down') { dy = 1; player.dir = 'down'; player.isMoving = true; }
+    if(keys.left || mobileDir === 'left') { dx = -1; player.dir = 'left'; player.isMoving = true; }
+    if(keys.right || mobileDir === 'right') { dx = 1; player.dir = 'right'; player.isMoving = true; }
 
-    if(dx !== 0 || dy !== 0) {
-        player.x += dx * player.speed;
-        player.y += dy * player.speed;
+    // Move with Rock Collision Checks (Slide along walls)
+    if(player.isMoving) {
+        let nextX = player.x + (dx * player.speed);
+        let nextY = player.y + (dy * player.speed);
+        
+        if (!checkRockCollision(nextX, player.y)) player.x = nextX;
+        if (!checkRockCollision(player.x, nextY)) player.y = nextY;
     }
 
-    // Camera follows player
     camera.x = player.x - W/2;
     camera.y = player.y - H/2;
 
-    // Update UI
-    document.getElementById('fish').innerText = fish;
+    // Enemy Logic
+    if (enemy.hitTimer > 0) {
+        enemy.hitTimer--;
+        if (enemy.hitTimer <= 0) {
+            enemy.x = player.x + (Math.random() > 0.5 ? 400 : -400);
+            enemy.y = player.y + (Math.random() > 0.5 ? 400 : -400);
+        }
+    } else {
+        let edx = player.x - enemy.x;
+        let edy = player.y - enemy.y;
+        let dist = Math.hypot(edx, edy);
+        if (dist > 0) {
+            enemy.x += (edx / dist) * enemy.speed;
+            enemy.y += (edy / dist) * enemy.speed;
+        }
+
+        // Jumping makes you invincible
+        if (dist < 50 && player.invulnTimer <= 0 && player.jumpTimer <= 0) {
+            player.hp -= 20;
+            player.invulnTimer = 60;
+            document.getElementById('hp-bar').style.width = Math.max(0, player.hp) + '%';
+            if (player.hp <= 0) {
+                isDead = true;
+            }
+        }
+    }
+
     document.getElementById('lvl').innerText = level;
 }
 
+function drawSprite(img, sx, sy, facingLeft, jumpOffset) {
+    if (!img.complete) return;
+    let scale = 1.5;
+    let w = img.width * scale;
+    let h = img.height * scale;
+    
+    // Draw Shadow
+    if (jumpOffset > 0) {
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, w/3, h/6, 0, 0, Math.PI*2);
+        ctx.fill();
+    }
+
+    ctx.save();
+    if (facingLeft) {
+        ctx.translate(sx, sy - jumpOffset);
+        ctx.scale(-1, 1);
+        ctx.drawImage(img, -w / 2, -h, w, h);
+    } else {
+        ctx.drawImage(img, sx - w / 2, sy - h - jumpOffset, w, h);
+    }
+    ctx.restore();
+}
+
 function draw() {
-    // Background
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0,0,W,H);
 
-    // Draw Grid (so you can tell you are moving)
+    // Grid
     ctx.strokeStyle = '#2d2d4e';
     ctx.lineWidth = 2;
     let offsetX = camera.x % 64;
     let offsetY = camera.y % 64;
-    for(let x = -offsetX; x < W; x += 64) {
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-    }
-    for(let y = -offsetY; y < H; y += 64) {
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    for(let x = -offsetX; x < W; x += 64) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+    for(let y = -offsetY; y < H; y += 64) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+    // Draw Rocks
+    for (let r of rocks) {
+        let rx = r.x - camera.x;
+        let ry = r.y - camera.y;
+        
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath();
+        ctx.ellipse(rx, ry + r.h/2 - 10, r.w/2, r.h/4, 0, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Rock Body
+        ctx.fillStyle = '#4a4a5a';
+        ctx.beginPath();
+        ctx.roundRect(rx - r.w/2, ry - r.h/2, r.w, r.h, 15);
+        ctx.fill();
+        
+        // Rock Highlights
+        ctx.fillStyle = '#6a6a7a';
+        ctx.beginPath();
+        ctx.roundRect(rx - r.w/2 + 10, ry - r.h/2 + 10, r.w/2 - 5, r.h/2 - 5, 10);
+        ctx.fill();
     }
 
-    // Draw Player
     let screenX = player.x - camera.x;
     let screenY = player.y - camera.y;
 
-    if(catLoaded) {
-        ctx.drawImage(catImg, screenX - player.size/2, screenY - player.size/2, player.size, player.size);
-    } else {
-        // Fallback Blue Square if image fails
-        ctx.fillStyle = '#0ff';
-        ctx.fillRect(screenX - player.size/2, screenY - player.size/2, player.size, player.size);
+    // Draw Enemy
+    if (enemy.hitTimer <= 0) {
+        let ex = enemy.x - camera.x;
+        let ey = enemy.y - camera.y;
+        ctx.fillStyle = '#f00';
+        ctx.fillRect(ex - enemy.size/2, ey - enemy.size/2, enemy.size, enemy.size);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(ex - 8, ey - 5, 4, 4);
+        ctx.fillRect(ex + 4, ey - 5, 4, 4);
     }
+
+    // --- ANIMATION STATE MACHINE ---
+    let currentImg = idleImg;
+    let jumpOffset = 0;
+    
+    if (isDead) {
+        currentImg = deathImg;
+    } else if (player.attackTimer > 0) {
+        currentImg = attackImg;
+    } else if (player.jumpTimer > 0) {
+        currentImg = jumpImg;
+        // Calculate a smooth arc for the jump height
+        let progress = (30 - player.jumpTimer) / 30;
+        jumpOffset = Math.sin(progress * Math.PI) * 60; // Jump 60 pixels high
+    } else if (player.invulnTimer > 0) {
+        currentImg = damageImg; 
+    } else if (player.isMoving) {
+        currentImg = runImg; 
+    }
+
+    drawSprite(currentImg, screenX, screenY, player.dir === 'left', jumpOffset);
 }
 
-function loop() {
-    update();
-    draw();
-    requestAnimationFrame(loop);
-}
+function loop() { update(); draw(); requestAnimationFrame(loop); }
 loop();
 </script>
 </body>
