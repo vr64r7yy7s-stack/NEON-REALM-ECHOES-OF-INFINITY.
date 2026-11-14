@@ -3,19 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>NEON REALM: ECHOES OF INFINITY</title>
-    
+    <title>NEON CATS: ECHOES OF INFINITY</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
         html, body { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; touch-action: none; }
-        
         #gameCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: block; image-rendering: pixelated; }
         #crt { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 3px); box-shadow: inset 0 0 120px rgba(0,0,0,0.8); mix-blend-mode: multiply; }
         
         #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 20; display: flex; flex-direction: column; justify-content: space-between; }
         .hud-top { display: flex; justify-content: space-between; padding: 10px; gap: 5px; flex-wrap: wrap; }
         .hud-box { background: rgba(0, 0, 0, 0.8); border: 2px solid #fff; color: #fff; padding: 4px 8px; font-size: 12px; font-weight: bold; text-shadow: 1px 1px 0 #000; box-shadow: 2px 2px 0 #000; }
-        
         #dialogueBox { position: absolute; bottom: 170px; left: 10px; right: 10px; background: #000; border: 3px solid #fff; padding: 10px; color: #fff; font-size: 13px; line-height: 1.4; display: none; z-index: 30; box-shadow: 4px 4px 0 #000; }
         
         #touchControls { position: absolute; bottom: 0; left: 0; width: 100%; height: 160px; display: flex; justify-content: space-between; align-items: flex-end; padding: 10px 20px 20px; z-index: 25; pointer-events: none; }
@@ -25,228 +22,118 @@
         
         .action-btns { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
         .action-btn { width: 70px; height: 70px; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #fff; font-weight: bold; font-size: 14px; pointer-events: auto; text-shadow: 0 0 5px #000; }
-        #attackBtn { background: rgba(255, 0, 0, 0.3); border: 3px solid #f00; box-shadow: 0 0 15px rgba(255, 0, 0, 0.5); }
-        #talkBtn { background: rgba(0, 255, 255, 0.2); border: 3px solid #0ff; box-shadow: 0 0 15px rgba(0, 255, 255, 0.5); }
+        #attackBtn { background: rgba(255, 0, 0, 0.3); border: 3px solid #f00; }
+        #talkBtn { background: rgba(0, 255, 255, 0.2); border: 3px solid #0ff; }
 
-        /* Start Menu & Character Select */
         #menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #050510; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; pointer-events: auto; transition: opacity 0.5s; overflow-y: auto; padding: 20px; }
         #menu h1 { color: #0ff; font-size: 32px; text-shadow: 0 0 20px #0ff; margin-bottom: 5px; text-align: center; }
-        #menu p { color: #fff; margin-bottom: 15px; font-size: 14px; text-align: center; }
-        
         #charSelect { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; width: 100%; max-width: 600px; padding: 10px; margin-bottom: 20px; max-height: 40vh; overflow-y: auto; }
         .char-card { width: 90px; height: 110px; border: 2px solid #555; background: #111; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #777; font-size: 10px; cursor: pointer; border-radius: 8px; padding: 5px; text-align: center; }
         .char-card.unlocked { border-color: #0ff; color: #fff; box-shadow: 0 0 10px rgba(0,255,255,0.3); }
         .char-card.selected { border-color: #ff0; background: #222; transform: scale(1.05); }
-        .char-icon { width: 30px; height: 30px; margin-bottom: 5px; border-radius: 50%; flex-shrink: 0; }
-
-        #startBtn { background: #000; color: #0ff; border: 3px solid #0ff; padding: 15px 40px; font-size: 18px; font-family: inherit; cursor: pointer; font-weight: bold; text-shadow: 0 0 5px #0ff; box-shadow: 0 0 15px #0ff; margin-top: 10px; }
-        #userName { color: #0f0; margin-top: 10px; font-size: 12px; }
+        .char-icon { width: 40px; height: 40px; margin-bottom: 5px; image-rendering: pixelated; background-size: contain; background-repeat: no-repeat; background-position: center; }
+        #startBtn { background: #000; color: #0ff; border: 3px solid #0ff; padding: 15px 40px; font-size: 18px; font-family: inherit; cursor: pointer; font-weight: bold; box-shadow: 0 0 15px #0ff; margin-top: 10px; }
     </style>
 </head>
 <body>
-
     <canvas id="gameCanvas"></canvas>
     <div id="crt"></div>
-
     <div id="ui">
         <div class="hud-top">
-            <div class="hud-box">
-                GOLD: <span id="goldHud" style="color:#ff0">0</span><br>
-                LVL: <span id="lvlHud">1</span> | XP: <span id="xpHud">0/10</span>
-            </div>
-            <div class="hud-box" style="max-width: 60%;">
-                ZONE: <span id="zoneHud" style="color:#0ff">Meadow</span>
-                <span id="questHud" style="color:#f0f; font-size:10px; display:block; margin-top:4px;"></span>
-            </div>
+            <div class="hud-box">FISH: <span id="goldHud" style="color:#ff0">0</span><br>LVL: <span id="lvlHud">1</span> | XP: <span id="xpHud">0/10</span></div>
+            <div class="hud-box" style="max-width: 60%;">ZONE: <span id="zoneHud" style="color:#0ff">Meadow</span><span id="questHud" style="color:#f0f; font-size:10px; display:block; margin-top:4px;"></span></div>
         </div>
-
-        <div id="dialogueBox">
-            <span id="dialogueText"></span>
-        </div>
+        <div id="dialogueBox"><span id="dialogueText"></span></div>
     </div>
-
     <div id="touchControls">
         <div id="dpad">
-            <div class="dpad-btn" id="btnUp">▲</div>
-            <div class="dpad-btn" id="btnDown">▼</div>
-            <div class="dpad-btn" id="btnLeft">◀</div>
-            <div class="dpad-btn" id="btnRight">▶</div>
+            <div class="dpad-btn" id="btnUp">▲</div><div class="dpad-btn" id="btnDown">▼</div><div class="dpad-btn" id="btnLeft">◀</div><div class="dpad-btn" id="btnRight">▶</div>
         </div>
-        <div class="action-btns">
-            <div class="action-btn" id="talkBtn">TALK</div>
-            <div class="action-btn" id="attackBtn">ATK</div>
-        </div>
+        <div class="action-btns"><div class="action-btn" id="talkBtn">MEOW</div><div class="action-btn" id="attackBtn">CLAW</div></div>
     </div>
-
-    <!-- Main Menu -->
     <div id="menu">
-        <h1>NEON REALM</h1>
-        <p>ECHOES OF INFINITY</p>
-        
+        <h1>NEON CATS</h1><p>ECHOES OF INFINITY</p>
         <div id="charSelect"></div>
-
         <button id="startBtn">ENTER THE REALM</button>
-        <p id="userName">Playing Offline</p>
     </div>
 
 <script>
 (function() {
     'use strict';
 
-    // --- PROCEDURAL CHARACTER GENERATOR ---
-    const PREFIXES = ['Neon', 'Cyber', 'Void', 'Astral', 'Crystal', 'Shadow', 'Solar', 'Lunar', 'Quantum', 'Plasma', 'Mystic', 'Ancient'];
-    const CLASSES = ['Mage', 'Knight', 'Slime', 'Rogue', 'Cyborg', 'Ninja', 'Alien', 'Ghost', 'Robot', 'Dragon'];
+    // --- LOAD ALL 7 ANIMATIONS ---
+    const anims = {};
+    const fileNames = {
+        idle: 'cat_idle.png', run: 'cat_run.png', attack: 'cat_attack.png',
+        damage: 'cat_damage.png', death: 'cat_death.png', dodge: 'cat_dodge.png', jump: 'cat_jump.png'
+    };
+    let imagesLoaded = 0;
+    
+    Object.keys(fileNames).forEach(key => {
+        anims[key] = new Image();
+        anims[key].src = fileNames[key];
+        anims[key].onload = () => { imagesLoaded++; if(imagesLoaded === 7) updateMenuUI(); };
+    });
+
+    const PREFIXES = ['Neon', 'Cyber', 'Void', 'Astral', 'Crystal', 'Shadow', 'Solar', 'Lunar', 'Quantum'];
+    const BREEDS = ['Tabby', 'Maine Coon', 'Calico', 'Siamese', 'Bengal', 'Sphynx', 'Persian', 'Tuxedo'];
     const ABILITIES = [
-        { name: 'Fire Trail', desc: 'Leaves a trail of burning plasma' },
-        { name: 'Ice Shield', desc: 'Blocks one hit every 10 seconds' },
-        { name: 'Double Jump', desc: 'Can jump twice in mid-air' },
-        { name: 'Life Steal', desc: 'Heals 2 HP per enemy killed' },
-        { name: 'Speed Boost', desc: '+20% movement speed' },
-        { name: 'Gold Magnet', desc: 'Attracts gold from further away' }
+        { name: 'Fire Paws', color: '#ff4400' }, { name: 'Ice Fur', color: '#00ffff' },
+        { name: 'Zoomies', color: '#ffff00' }, { name: 'Life Steal', color: '#ff00ff' },
+        { name: 'Fish Magnet', color: '#00ff00' }, { name: 'Nine Lives', color: '#ffffff' }
     ];
 
     function generateCharacter(id, levelReq) {
         const p = PREFIXES[Math.floor(Math.random() * PREFIXES.length)];
-        const c = CLASSES[Math.floor(Math.random() * CLASSES.length)];
+        const c = BREEDS[Math.floor(Math.random() * BREEDS.length)];
         const ability = ABILITIES[Math.floor(Math.random() * ABILITIES.length)];
-        
-        // Generate a bright neon color based on math
-        const hue = Math.floor(Math.random() * 360);
-        const color = `hsl(${hue}, 100%, 60%)`;
-
-        return {
-            id: id,
-            name: `${p} ${c}`,
-            color: color,
-            lvlReq: levelReq,
-            ability: ability
-        };
+        return { id: id, name: `${p} ${c}`, color: ability.color, lvlReq: levelReq, ability: ability };
     }
 
-    let CHARACTERS = [
-        { id: 0, name: 'Basic Explorer', color: '#0ff', lvlReq: 1, ability: { name: 'None', desc: 'Just a normal traveler.' } }
-    ];
-    
-    // Start with 5 random characters
-    for (let i = 1; i <= 5; i++) {
-        CHARACTERS.push(generateCharacter(i, i * 2));
-    }
+    let CHARACTERS = [{ id: 0, name: 'Meow Knight', color: '#fff', lvlReq: 1, ability: { name: 'Claw', color: '#fff' } }];
+    for (let i = 1; i <= 5; i++) CHARACTERS.push(generateCharacter(i, i * 2));
 
-    // --- SAVE DATA ---
-    let savedData = JSON.parse(localStorage.getItem('neonRealmSave'));
-    if (!savedData) {
-        savedData = { gold: 0, level: 1, xp: 0, unlockedChars: [0], generatedCount: 5 };
-    }
-    
+    let savedData = JSON.parse(localStorage.getItem('neonCatsSave')) || { gold: 0, level: 1, xp: 0, unlockedChars: [0] };
     let selectedChar = 0;
 
-    // --- DOM & CANVAS ---
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const goldHud = document.getElementById('goldHud');
-    const lvlHud = document.getElementById('lvlHud');
-    const xpHud = document.getElementById('xpHud');
-    const zoneHud = document.getElementById('zoneHud');
-    const questHud = document.getElementById('questHud');
-    const dialogueBox = document.getElementById('dialogueBox');
-    const dialogueText = document.getElementById('dialogueText');
-    const menu = document.getElementById('menu');
-    const startBtn = document.getElementById('startBtn');
-    const charSelect = document.getElementById('charSelect');
+    const canvas = document.getElementById('gameCanvas'), ctx = canvas.getContext('2d');
+    const goldHud = document.getElementById('goldHud'), lvlHud = document.getElementById('lvlHud'), xpHud = document.getElementById('xpHud');
+    const zoneHud = document.getElementById('zoneHud'), questHud = document.getElementById('questHud');
+    const dialogueBox = document.getElementById('dialogueBox'), dialogueText = document.getElementById('dialogueText');
+    const menu = document.getElementById('menu'), startBtn = document.getElementById('startBtn'), charSelect = document.getElementById('charSelect');
 
     let W, H;
     function resize() { W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; }
     window.addEventListener('resize', resize); resize();
 
-    // --- AUDIO ---
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = null;
-    function initAudio() { if (!audioCtx) audioCtx = new AudioCtx(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
-    function playSound(type) {
-        if (!audioCtx) return;
-        const t = audioCtx.currentTime; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        if (type === 'hit') { osc.type = 'square'; osc.frequency.setValueAtTime(150, t); osc.frequency.exponentialRampToValueAtTime(50, t + 0.1); gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1); osc.start(t); osc.stop(t + 0.1); }
-        else if (type === 'pickup') { osc.type = 'sine'; osc.frequency.setValueAtTime(800, t); osc.frequency.setValueAtTime(1200, t + 0.1); gain.gain.setValueAtTime(0.08, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2); osc.start(t); osc.stop(t + 0.2); }
-        else if (type === 'talk') { osc.type = 'square'; osc.frequency.setValueAtTime(400, t); gain.gain.setValueAtTime(0.03, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.05); osc.start(t); osc.stop(t + 0.05); }
-    }
-
-    // --- GAME STATE ---
-    let isPlaying = false, gameFrame = 0;
-    let player = {
-        x: 0, y: 0, w: 20, h: 20, speed: 3.8, dir: 'down', walking: false, frame: 0,
-        hp: 100, maxHp: 100, level: savedData.level, xp: savedData.xp, xpNext: savedData.level * 10,
-        gold: savedData.gold, attackTimer: 0, invulnTimer: 0, 
-        color: CHARACTERS[0].color, ability: CHARACTERS[0].ability
-    };
-    let camera = { x: 0, y: 0 };
-    let enemies = [], particles = [];
-    let activeDialogue = null, typeIndex = 0;
-    let activeQuest = null;
-
-    // --- UI UPDATER ---
     function updateMenuUI() {
-        lvlHud.innerText = player.level;
-        charSelect.innerHTML = '';
-
-        // Check for unlocks based on level
+        lvlHud.innerText = player.level; charSelect.innerHTML = '';
         let newlyUnlocked = false;
-        CHARACTERS.forEach(c => {
-            if (player.level >= c.lvlReq && !savedData.unlockedChars.includes(c.id)) {
-                savedData.unlockedChars.push(c.id);
-                newlyUnlocked = true;
-            }
-        });
-
-        // THE INFINITE AI GENERATOR
-        // If the player has unlocked 80% of the current roster, generate 3 more!
-        const unlockRatio = savedData.unlockedChars.length / CHARACTERS.length;
-        if (unlockRatio >= 0.8) {
-            const nextId = CHARACTERS.length;
-            const nextLvl = CHARACTERS[CHARACTERS.length - 1].lvlReq + 3;
-            for (let i = 0; i < 3; i++) {
-                CHARACTERS.push(generateCharacter(nextId + i, nextLvl + (i * 2)));
-            }
-            savedData.generatedCount = CHARACTERS.length;
+        CHARACTERS.forEach(c => { if (player.level >= c.lvlReq && !savedData.unlockedChars.includes(c.id)) { savedData.unlockedChars.push(c.id); newlyUnlocked = true; } });
+        if (savedData.unlockedChars.length / CHARACTERS.length >= 0.8) {
+            const nextId = CHARACTERS.length, nextLvl = CHARACTERS[CHARACTERS.length - 1].lvlReq + 3;
+            for (let i = 0; i < 3; i++) CHARACTERS.push(generateCharacter(nextId + i, nextLvl + (i * 2)));
             newlyUnlocked = true;
         }
+        if (newlyUnlocked) localStorage.setItem('neonCatsSave', JSON.stringify(savedData));
 
-        if (newlyUnlocked) localStorage.setItem('neonRealmSave', JSON.stringify(savedData));
-
-        // Render Cards
         CHARACTERS.forEach(c => {
             const isUnlocked = savedData.unlockedChars.includes(c.id);
             const card = document.createElement('div');
             card.className = `char-card ${isUnlocked ? 'unlocked' : ''} ${selectedChar === c.id ? 'selected' : ''}`;
-            card.innerHTML = `
-                <div class="char-icon" style="background: ${isUnlocked ? c.color : '#333'}"></div>
-                <div style="font-weight:bold; margin-bottom:3px;">${c.name}</div>
-                <div style="font-size:8px; color:${isUnlocked ? '#aaa' : '#555'}; margin-bottom:3px;">${c.ability.name}</div>
-                <div style="font-size:8px; color:${isUnlocked ? '#0f0' : '#f00'};">${isUnlocked ? 'READY' : 'LVL '+c.lvlReq}</div>
-            `;
-            if (isUnlocked) {
-                card.addEventListener('click', () => { 
-                    selectedChar = c.id; 
-                    updateMenuUI(); 
-                });
-            }
+            const bgStyle = (imagesLoaded === 7 && c.id === 0) ? `background-image: url('cat_idle.png'); filter: ${isUnlocked ? 'none' : 'grayscale(1) brightness(0.5)'};` : `background-color: ${isUnlocked ? c.color : '#333'};`;
+            card.innerHTML = `<div class="char-icon" style="${bgStyle}"></div><div style="font-weight:bold; margin-bottom:3px;">${c.name}</div><div style="font-size:8px; color:${isUnlocked ? c.color : '#555'}; margin-bottom:3px;">${c.ability.name}</div><div style="font-size:8px; color:${isUnlocked ? '#0f0' : '#f00'};">${isUnlocked ? 'READY' : 'LVL '+c.lvlReq}</div>`;
+            if (isUnlocked) card.addEventListener('click', () => { selectedChar = c.id; updateMenuUI(); });
             charSelect.appendChild(card);
         });
-        
-        player.color = CHARACTERS[selectedChar].color;
-        player.ability = CHARACTERS[selectedChar].ability;
+        player.color = CHARACTERS[selectedChar].color; player.ability = CHARACTERS[selectedChar].ability;
     }
-    updateMenuUI();
 
-    // --- WORLD GENERATION ---
-    const CHUNK_SIZE = 800;
-    const chunks = new Map();
-    const ZONES = ['Meadow', 'Dark Forest', 'Mystic Lake', 'Crystal Caverns'];
+    const CHUNK_SIZE = 800, chunks = new Map(), ZONES = ['Meadow', 'Dark Forest', 'Mystic Lake', 'Crystal Caverns'];
     function seededRandom(x, y, seed = 1) { let n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453; return n - Math.floor(n); }
     
     function getChunk(cx, cy) {
-        const key = `${cx},${cy}`;
-        if (chunks.has(key)) return chunks.get(key);
+        const key = `${cx},${cy}`; if (chunks.has(key)) return chunks.get(key);
         const zoneIndex = Math.abs(cx + cy * 3) % ZONES.length;
         const chunk = { cx, cy, zone: ZONES[zoneIndex], zoneIndex, trees: [], npcs: [], orbs: [], enemySpawners: [] };
         const numObjects = 5 + Math.floor(seededRandom(cx, cy, 1) * 10);
@@ -256,11 +143,10 @@
             const type = seededRandom(cx, cy, i * 3);
             if (type < 0.3) chunk.trees.push({ x: ox, y: oy, size: 20 + seededRandom(cx,cy,i*4)*15 });
             else if (type < 0.5) chunk.orbs.push({ x: ox, y: oy, collected: false });
-            else if (type < 0.65) chunk.npcs.push({ x: ox, y: oy, w: 20, h: 20, name: "Traveler", text: "The Slimes are getting aggressive... Can you help clear them out?", color: ['#f0f', '#ff0', '#0f0'][Math.floor(seededRandom(cx,cy,i*6)*3)], hasQuest: seededRandom(cx,cy,i*7) > 0.5 });
+            else if (type < 0.65) chunk.npcs.push({ x: ox, y: oy, w: 20, h: 20, color: ['#f0f', '#ff0', '#0f0'][Math.floor(seededRandom(cx,cy,i*6)*3)], hasQuest: seededRandom(cx,cy,i*7) > 0.5 });
             else if (type < 0.9) chunk.enemySpawners.push({ x: ox, y: oy });
         }
-        chunks.set(key, chunk);
-        return chunk;
+        chunks.set(key, chunk); return chunk;
     }
 
     function getVisibleChunks() {
@@ -273,32 +159,23 @@
 
     function spawnEnemies() {
         if (gameFrame % 60 === 0 && isPlaying) {
-            const visible = getVisibleChunks();
-            for (let chunk of visible) {
+            getVisibleChunks().forEach(chunk => {
                 if (chunk.enemySpawners.length > 0 && Math.random() < 0.3) {
                     const spawner = chunk.enemySpawners[Math.floor(Math.random() * chunk.enemySpawners.length)];
-                    if (Math.hypot(spawner.x - player.x, spawner.y - player.y) > 300) {
-                        enemies.push({ x: spawner.x, y: spawner.y, w: 20, h: 20, hp: 20 + (player.level * 5), maxHp: 20 + (player.level * 5), speed: 1 + (player.level * 0.1), hitTimer: 0 });
-                    }
+                    if (Math.hypot(spawner.x - player.x, spawner.y - player.y) > 300) enemies.push({ x: spawner.x, y: spawner.y, w: 20, h: 20, hp: 20 + (player.level * 5), maxHp: 20 + (player.level * 5), speed: 1 + (player.level * 0.1), hitTimer: 0 });
                 }
-            }
+            });
         }
     }
 
-    // --- PROGRESSION & ABILITIES ---
-    function saveProgress() {
-        localStorage.setItem('neonRealmSave', JSON.stringify(savedData));
-    }
+    function saveProgress() { localStorage.setItem('neonCatsSave', JSON.stringify(savedData)); }
 
     function gainXP(amount) {
         player.xp += amount; savedData.xp = player.xp;
         if (player.xp >= player.xpNext) {
             player.xp -= player.xpNext; player.level++; savedData.level = player.level;
-            player.xpNext = Math.floor(player.xpNext * 1.5);
-            player.maxHp += 20; player.hp = player.maxHp;
-            lvlHud.innerText = player.level;
-            saveProgress(); updateMenuUI();
-            playSound('pickup');
+            player.xpNext = Math.floor(player.xpNext * 1.5); player.maxHp += 20; player.hp = player.maxHp;
+            lvlHud.innerText = player.level; saveProgress(); updateMenuUI(); playSound('pickup');
         }
         xpHud.innerText = `${player.xp}/${player.xpNext}`;
     }
@@ -309,38 +186,27 @@
         if (activeQuest.current >= activeQuest.target) {
             player.gold += activeQuest.reward; goldHud.innerText = player.gold; savedData.gold = player.gold;
             activeQuest = null; questHud.innerText = "QUEST COMPLETE!";
-            setTimeout(() => { if(!activeQuest) questHud.innerText = ""; }, 3000);
-            saveProgress();
-        } else {
-            questHud.innerText = "QUEST: " + activeQuest.text + " (" + activeQuest.current + "/" + activeQuest.target + ")";
-        }
+            setTimeout(() => { if(!activeQuest) questHud.innerText = ""; }, 3000); saveProgress();
+        } else questHud.innerText = "QUEST: " + activeQuest.text + " (" + activeQuest.current + "/" + activeQuest.target + ")";
     }
 
     function giveQuest() {
-        const types = [{ type: 'kill', text: 'Defeat {n} Slimes', min: 3, max: 8, reward: 50 }, { type: 'gold', text: 'Collect {n} Gold', min: 20, max: 50, reward: 100 }];
+        const types = [{ type: 'kill', text: 'Defeat {n} Robo-Mice', min: 3, max: 8, reward: 50 }, { type: 'gold', text: 'Collect {n} Fish', min: 20, max: 50, reward: 100 }];
         const q = types[Math.floor(Math.random() * types.length)];
         const target = Math.floor(q.min + Math.random() * (q.max - q.min));
         activeQuest = { type: q.type, target: target, current: 0, reward: q.reward, text: q.text.replace('{n}', target) };
         questHud.innerText = "QUEST: " + activeQuest.text + " (0/" + activeQuest.target + ")";
     }
 
-    // --- INPUT ---
-    let keys = { up: false, down: false, left: false, right: false };
-    let mobileDir = null;
-
+    let keys = { up: false, down: false, left: false, right: false }, mobileDir = null;
     window.addEventListener('keydown', e => {
-        if (e.key === 'w' || e.key === 'ArrowUp') keys.up = true;
-        if (e.key === 's' || e.key === 'ArrowDown') keys.down = true;
-        if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = true;
-        if (e.key === 'd' || e.key === 'ArrowRight') keys.right = true;
-        if (e.code === 'Space') attack();
-        if (e.code === 'KeyE') interact();
+        if (e.key === 'w' || e.key === 'ArrowUp') keys.up = true; if (e.key === 's' || e.key === 'ArrowDown') keys.down = true;
+        if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = true; if (e.key === 'd' || e.key === 'ArrowRight') keys.right = true;
+        if (e.code === 'Space') attack(); if (e.code === 'KeyE') interact();
     });
     window.addEventListener('keyup', e => {
-        if (e.key === 'w' || e.key === 'ArrowUp') keys.up = false;
-        if (e.key === 's' || e.key === 'ArrowDown') keys.down = false;
-        if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = false;
-        if (e.key === 'd' || e.key === 'ArrowRight') keys.right = false;
+        if (e.key === 'w' || e.key === 'ArrowUp') keys.up = false; if (e.key === 's' || e.key === 'ArrowDown') keys.down = false;
+        if (e.key === 'a' || e.key === 'ArrowLeft') keys.left = false; if (e.key === 'd' || e.key === 'ArrowRight') keys.right = false;
     });
 
     function setupTouchButton(id, dir) {
@@ -348,40 +214,37 @@
         btn.addEventListener('touchstart', e => { e.preventDefault(); mobileDir = dir; }, {passive: false});
         btn.addEventListener('touchend', e => { e.preventDefault(); mobileDir = null; }, {passive: false});
     }
-    setupTouchButton('btnUp', 'up'); setupTouchButton('btnDown', 'down');
-    setupTouchButton('btnLeft', 'left'); setupTouchButton('btnRight', 'right');
-
+    setupTouchButton('btnUp', 'up'); setupTouchButton('btnDown', 'down'); setupTouchButton('btnLeft', 'left'); setupTouchButton('btnRight', 'right');
     document.getElementById('attackBtn').addEventListener('touchstart', e => { e.preventDefault(); attack(); }, {passive: false});
     document.getElementById('talkBtn').addEventListener('touchstart', e => { e.preventDefault(); interact(); }, {passive: false});
 
-    // --- COMBAT ---
+    let isPlaying = false, gameFrame = 0;
+    let player = {
+        x: 0, y: 0, w: 32, h: 32, speed: 3.8, dir: 'down', walking: false, frame: 0,
+        hp: 100, maxHp: 100, level: savedData.level, xp: savedData.xp, xpNext: savedData.level * 10,
+        gold: savedData.gold, attackTimer: 0, invulnTimer: 0, color: CHARACTERS[0].color, ability: CHARACTERS[0].ability
+    };
+    let camera = { x: 0, y: 0 }, enemies = [], particles = [];
+    let activeDialogue = null, typeIndex = 0, activeQuest = null;
+    updateMenuUI();
+
     function attack() {
         if (!isPlaying || player.attackTimer > 0) return;
         player.attackTimer = 20; playSound('hit');
         let ax = player.x, ay = player.y;
         if (player.dir === 'up') ay -= 40; if (player.dir === 'down') ay += 40;
         if (player.dir === 'left') ax -= 40; if (player.dir === 'right') ax += 40;
-        
         particles.push({ x: ax, y: ay, vx: 0, vy: 0, life: 0.5, color: '#fff', size: 30 });
-        
         for (let i = enemies.length - 1; i >= 0; i--) {
             let e = enemies[i];
             if (Math.hypot(ax - e.x, ay - e.y) < 50) {
-                let dmg = 10 + (player.level * 2);
-                e.hp -= dmg; e.hitTimer = 10;
-                
+                e.hp -= (10 + (player.level * 2)); e.hitTimer = 10;
                 if (e.hp <= 0) {
                     enemies.splice(i, 1);
-                    
-                    // Ability: Life Steal
-                    if (player.ability.name === 'Life Steal') {
-                        player.hp = Math.min(player.maxHp, player.hp + 2);
-                    }
-                    
+                    if (player.ability.name === 'Life Steal') player.hp = Math.min(player.maxHp, player.hp + 2);
                     const drop = Math.floor(10 + Math.random() * 20);
                     player.gold += drop; goldHud.innerText = player.gold; savedData.gold = player.gold;
                     checkQuestProgress('kill', 1); checkQuestProgress('gold', drop); gainXP(5);
-                    
                     for(let p=0; p<5; p++) particles.push({ x: e.x, y: e.y, vx: (Math.random()-0.5)*10, vy: (Math.random()-0.5)*10, life: 1, color: '#ff0', size: 4 });
                 }
             }
@@ -391,43 +254,43 @@
     function interact() {
         if (activeDialogue) {
             if (typeIndex < activeDialogue.length) { typeIndex = activeDialogue.length; dialogueText.innerText = activeDialogue; }
-            else { activeDialogue = null; dialogueBox.style.display = 'none'; }
-            return;
+            else { activeDialogue = null; dialogueBox.style.display = 'none'; } return;
         }
-        const visible = getVisibleChunks();
-        for (let chunk of visible) {
-            for (let npc of chunk.npcs) {
+        getVisibleChunks().forEach(chunk => {
+            chunk.npcs.forEach(npc => {
                 if (Math.hypot(player.x - npc.x, player.y - npc.y) < 60) {
-                    if (npc.hasQuest && !activeQuest) { giveQuest(); activeDialogue = "I have a task for you! " + activeQuest.text; }
+                    if (npc.hasQuest && !activeQuest) { giveQuest(); activeDialogue = "Meow! I have a task for you! " + activeQuest.text; }
                     else if (activeQuest) activeDialogue = "You're already on a quest: " + activeQuest.text;
-                    else activeDialogue = npc.text;
-                    typeIndex = 0; dialogueBox.style.display = 'block'; dialogueText.innerText = ''; playSound('talk');
-                    return;
+                    else activeDialogue = "Meow! The Robo-Mice are everywhere.";
+                    typeIndex = 0; dialogueBox.style.display = 'block'; dialogueText.innerText = ''; playSound('talk'); return;
                 }
-            }
-        }
+            });
+        });
     }
 
-    // --- MAIN LOOP ---
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    function initAudio() { if (!audioCtx) audioCtx = new AudioCtx(); if (audioCtx.state === 'suspended') audioCtx.resume(); }
+    function playSound(type) {
+        if (!audioCtx) return; const t = audioCtx.currentTime, osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        if (type === 'hit') { osc.type = 'square'; osc.frequency.setValueAtTime(150, t); osc.frequency.exponentialRampToValueAtTime(50, t + 0.1); gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.1); osc.start(t); osc.stop(t + 0.1); }
+        else if (type === 'pickup') { osc.type = 'sine'; osc.frequency.setValueAtTime(800, t); osc.frequency.setValueAtTime(1200, t + 0.1); gain.gain.setValueAtTime(0.08, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2); osc.start(t); osc.stop(t + 0.2); }
+        else if (type === 'talk') { osc.type = 'square'; osc.frequency.setValueAtTime(400, t); gain.gain.setValueAtTime(0.03, t); gain.gain.exponentialRampToValueAtTime(0.01, t + 0.05); osc.start(t); osc.stop(t + 0.05); }
+    }
+
     function resetGame() {
-        isPlaying = true;
-        player.x = 0; player.y = 0; player.hp = player.maxHp;
-        player.gold = savedData.gold; player.level = savedData.level;
-        player.xp = savedData.xp; player.xpNext = savedData.level * 10;
+        isPlaying = true; player.x = 0; player.y = 0; player.hp = player.maxHp;
+        player.gold = savedData.gold; player.level = savedData.level; player.xp = savedData.xp; player.xpNext = savedData.level * 10;
         goldHud.innerText = player.gold; lvlHud.innerText = player.level; xpHud.innerText = `${player.xp}/${player.xpNext}`;
-        activeQuest = null; questHud.innerText = "";
-        enemies = []; particles = []; chunks.clear();
+        activeQuest = null; questHud.innerText = ""; enemies = []; particles = []; chunks.clear();
         menu.style.opacity = '0'; setTimeout(() => menu.style.display = 'none', 500);
     }
     startBtn.addEventListener('click', () => { initAudio(); resetGame(); });
 
     function update() {
-        if (!isPlaying) return;
-        gameFrame++;
-        if (activeDialogue && typeIndex < activeDialogue.length) {
-            if (gameFrame % 3 === 0) { typeIndex++; dialogueText.innerText = activeDialogue.substring(0, typeIndex); if (typeIndex % 3 === 0) playSound('talk'); }
-        }
-
+        if (!isPlaying) return; gameFrame++;
+        if (activeDialogue && typeIndex < activeDialogue.length) { if (gameFrame % 3 === 0) { typeIndex++; dialogueText.innerText = activeDialogue.substring(0, typeIndex); if (typeIndex % 3 === 0) playSound('talk'); } }
         let dx = 0, dy = 0, moving = false;
         if (keys.up || mobileDir === 'up') { dy = -1; player.dir = 'up'; moving = true; }
         if (keys.down || mobileDir === 'down') { dy = 1; player.dir = 'down'; moving = true; }
@@ -436,34 +299,28 @@
 
         if (moving && player.attackTimer === 0) {
             player.walking = true; player.frame += 0.15;
-            let spd = player.speed;
-            if (player.ability.name === 'Speed Boost') spd *= 1.2;
+            let spd = player.speed; if (player.ability.name === 'Zoomies') spd *= 1.2;
             const len = Math.hypot(dx, dy); player.x += (dx / len) * spd; player.y += (dy / len) * spd;
         } else player.walking = false;
 
-        if (player.attackTimer > 0) player.attackTimer--;
-        if (player.invulnTimer > 0) player.invulnTimer--;
-
+        if (player.attackTimer > 0) player.attackTimer--; if (player.invulnTimer > 0) player.invulnTimer--;
         camera.x = player.x - W / 2; camera.y = player.y - H / 2;
         const pCx = Math.floor(player.x / CHUNK_SIZE), pCy = Math.floor(player.y / CHUNK_SIZE);
         zoneHud.innerText = getChunk(pCx, pCy).zone;
 
         for (let i = enemies.length - 1; i >= 0; i--) {
-            let e = enemies[i];
-            if (e.hitTimer > 0) { e.hitTimer--; continue; }
+            let e = enemies[i]; if (e.hitTimer > 0) { e.hitTimer--; continue; }
             const edx = player.x - e.x, edy = player.y - e.y, dist = Math.hypot(edx, edy);
             if (dist < 300) {
                 e.x += (edx / dist) * e.speed; e.y += (edy / dist) * e.speed;
                 if (dist < 25 && player.invulnTimer <= 0) {
-                    // Ice Shield Ability
-                    if (player.ability.name === 'Ice Shield' && player.invulnTimer <= -120) {
-                        player.invulnTimer = 60; // Blocked hit
-                    } else {
+                    if (player.ability.name === 'Ice Fur' && player.invulnTimer <= -120) player.invulnTimer = 60; 
+                    else {
                         player.hp -= 10; player.invulnTimer = 60; playSound('hit');
                         if (player.hp <= 0) {
                             player.hp = player.maxHp; player.x = 0; player.y = 0;
                             player.gold = Math.floor(player.gold * 0.5); goldHud.innerText = player.gold; savedData.gold = player.gold; saveProgress();
-                            activeDialogue = "You were defeated! You lost half your gold."; typeIndex = 0; dialogueBox.style.display = 'block'; dialogueText.innerText = '';
+                            activeDialogue = "You fainted! You lost half your fish."; typeIndex = 0; dialogueBox.style.display = 'block'; dialogueText.innerText = '';
                         }
                     }
                 }
@@ -471,18 +328,16 @@
         }
 
         spawnEnemies();
-        const visible = getVisibleChunks();
-        for (let chunk of visible) {
-            for (let orb of chunk.orbs) {
-                if (orb.collected) continue;
-                let radius = player.ability.name === 'Gold Magnet' ? 60 : 30;
+        getVisibleChunks().forEach(chunk => {
+            chunk.orbs.forEach(orb => {
+                if (orb.collected) return;
+                let radius = player.ability.name === 'Fish Magnet' ? 60 : 30;
                 if (Math.hypot(player.x - orb.x, player.y - orb.y) < radius) {
-                    orb.collected = true;
-                    player.gold += 5; goldHud.innerText = player.gold; savedData.gold = player.gold;
+                    orb.collected = true; player.gold += 5; goldHud.innerText = player.gold; savedData.gold = player.gold;
                     checkQuestProgress('gold', 5); gainXP(2); playSound('pickup');
                 }
-            }
-        }
+            });
+        });
 
         for (let i = particles.length - 1; i >= 0; i--) {
             let p = particles[i]; p.x += p.vx; p.y += p.vy; p.life -= 0.02;
@@ -498,53 +353,70 @@
             const colors = ['#2d5a27', '#1a1a2e', '#1a3b5c', '#3b1a5c'];
             ctx.fillStyle = colors[chunk.zoneIndex]; ctx.fillRect(sx, sy, CHUNK_SIZE, CHUNK_SIZE);
             ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth = 2; ctx.strokeRect(sx, sy, CHUNK_SIZE, CHUNK_SIZE);
-
-            for (let tree of chunk.trees) {
+            chunk.trees.forEach(tree => {
                 const tx = tree.x - camera.x, ty = tree.y - camera.y;
                 ctx.fillStyle = '#4a2e15'; ctx.fillRect(tx, ty + 10, 10, 20);
                 ctx.fillStyle = chunk.zoneIndex === 3 ? '#0aa' : '#1b4018'; ctx.beginPath(); ctx.arc(tx + 5, ty + 5, tree.size/2, 0, Math.PI*2); ctx.fill();
-            }
-
-            for (let orb of chunk.orbs) {
-                if (orb.collected) continue;
+            });
+            chunk.orbs.forEach(orb => {
+                if (orb.collected) return;
                 const ox = orb.x - camera.x, oy = orb.y - camera.y;
                 ctx.fillStyle = '#ff0'; ctx.beginPath(); ctx.arc(ox, oy, 6, 0, Math.PI*2); ctx.fill();
-            }
-
-            for (let npc of chunk.npcs) {
+            });
+            chunk.npcs.forEach(npc => {
                 const nx = npc.x - camera.x, ny = npc.y - camera.y;
                 ctx.fillStyle = npc.color; ctx.fillRect(nx, ny, npc.w, npc.h);
                 ctx.fillStyle = '#ffccaa'; ctx.fillRect(nx + 3, ny - 8, 14, 14);
                 if (Math.hypot(player.x - npc.x, player.y - npc.y) < 60 && !activeDialogue) {
                     ctx.fillStyle = '#fff'; ctx.font = '12px Courier New'; ctx.fillText(npc.hasQuest ? "!" : "...", nx + 5, ny - 20);
                 }
-            }
+            });
         }
 
-        for (let e of enemies) {
+        enemies.forEach(e => {
             const ex = e.x - camera.x, ey = e.y - camera.y;
             ctx.fillStyle = e.hitTimer > 0 ? '#fff' : '#f00'; ctx.fillRect(ex, ey, e.w, e.h);
             ctx.fillStyle = '#000'; ctx.fillRect(ex + 5, ey + 5, 3, 3); ctx.fillRect(ex + 12, ey + 5, 3, 3);
-        }
+        });
 
-        for (let p of particles) {
+        particles.forEach(p => {
             ctx.fillStyle = p.color; ctx.globalAlpha = Math.max(0, p.life); ctx.fillRect(p.x - camera.x, p.y - camera.y, p.size, p.size);
-        }
+        });
         ctx.globalAlpha = 1;
 
         const px = player.x - camera.x, py = player.y - camera.y;
-        ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(px + 10, py + 20, 10, 5, 0, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = player.color; ctx.fillRect(px, py, player.w, player.h);
-        ctx.fillStyle = '#ffccaa'; ctx.fillRect(px + 3, py - 8, 14, 14);
-        ctx.fillStyle = '#000'; 
-        if (player.dir === 'down') { ctx.fillRect(px + 6, py - 5, 2, 2); ctx.fillRect(px + 12, py - 5, 2, 2); }
-        else if (player.dir === 'left') { ctx.fillRect(px + 3, py - 5, 2, 2); ctx.fillRect(px + 8, py - 5, 2, 2); }
-        else if (player.dir === 'right') { ctx.fillRect(px + 9, py - 5, 2, 2); ctx.fillRect(px + 14, py - 5, 2, 2); }
+        
+        // --- ANIMATION SELECTOR ---
+        let currentImg = null;
+        if (imagesLoaded === 7) {
+            if (player.hp <= 0) currentImg = anims.death;
+            else if (player.attackTimer > 10) currentImg = anims.attack;
+            else if (player.invulnTimer > 40) currentImg = anims.damage;
+            else if (player.walking) currentImg = anims.run;
+            else currentImg = anims.idle;
+        }
+
+        if (currentImg) {
+            ctx.save();
+            // Flip the image if moving left
+            if (player.dir === 'left') {
+                ctx.translate(px + 32, py);
+                ctx.scale(-1, 1);
+                ctx.drawImage(currentImg, 0, 0, 48, 48);
+            } else {
+                ctx.drawImage(currentImg, px, py, 48, 48);
+            }
+            ctx.restore();
+        } else {
+            // Fallback square if images aren't loaded yet
+            ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.beginPath(); ctx.ellipse(px + 10, py + 20, 10, 5, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = player.color; ctx.fillRect(px, py, player.w, player.h);
+            ctx.fillStyle = '#ffccaa'; ctx.fillRect(px + 3, py - 8, 14, 14);
+        }
     }
 
     function loop() { update(); draw(); requestAnimationFrame(loop); }
     loop();
-
 })();
 </script>
 </body>
