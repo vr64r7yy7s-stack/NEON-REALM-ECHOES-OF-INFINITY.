@@ -84,9 +84,22 @@ deathImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAACSCAYAAAAkeM
 const jumpImg = new Image();
 jumpImg.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAACSCAYAAABMi0qyAAAAAXNSR0IArs4c6QAAA/VJREFUeJztms9LG0EUx78RSw+lSBNBFKnRVqR4VRD7BxSkLfTSQ+nBo5c2tIUe6qW3Wi8S7EGaS8CCkKsSLGgPijHUFIpFtESTCGJIm4nY0oP0sD3Y2c7s700m0cL7gGR3kux7OztZ32dngPNIKpvTvLSpoMkqUDi9JgW0alNFs90b7cEW5BnTA56MjACVY9XxERB3Utmc1h5scf1SdygUcP2QR/RLMLe4ou3vHSC9sQUAiIxGTB/mbXOLK8ouhaceiIxGEI1H9f2G9IAYfOb+LalHGt4DRlT2gOlAbkmoDC4lkGdM4wefnIlrnW2tpg8/uHdbaXDA5j5wJRjC1tcsAKC/rxfpjYzquDrSGeUZ06bfzgEAblzrQldHGxaSSQwNDuCgVMbm1jbeTb9W2gumW7HI/mFJD14vTGeTZ0xbWk5JbUcVBgB4PjaqfAzYMj4xJf3WH794WZf/hgRBEAThmYapmVWweqqZqxvmGdPagy2nalYHbCsioxvatSlNgJfkdmcrqplKOdHhB55bXNHyjGl37zzU8oyZtlX3gkQqm5MC8eCHs7NSEqp6QCoyxYMODfY7flGVIflWM5XBLROwSmJ9ZV3fVq1nupqJbjjc2xOIJea1Qm4XQH31zOSGT1+90cdBuOe6Sc9Uo98HukOhgNXPq956JvWAmISoZ79+kxQRBEEQ54SGzhkZA4fTayiojg6XR7U8ON821ooqesSxvuNVslWFXKwcI5xeQ2HoJoZ7e6quEx2/KBanxcqxqQd4e10SsHIEMQlxu5Yy3XMPWMGTqCUB10FoRJw948nVRVQ5bo5Yq6i63geWllPgghKNR3ECICrou3Ge0S+O1y6WmNe6Otr0/fL3b0hvZPDk2SMAahzRcQxs7+1jcfUjAGAhmdTbu0OhgCpB1RNwup6iHXVeDauIq2M5acW3RTs6k4krgiAIgiCI/wLuBNW6gW8xEeF2LL76NeaqExC1TXxtD7b4SqTqAtPJiC7+LeG9qLunJyQikzNxy8CiLZ+MjHjWdtcEYol5DQAKuV309/Wa3ufrTY0W7fWZgeMYiCXmtUsXAvjy+ZMe/KBUlqZvjOtNOV7HgG0C4xNT2lGF4aBUxtDgADI7BWR2Ctjc2oa42nIs8V5accvxOt3fBMgKzv9+/vi3itppwooHLwqrrouV45qfHREEQRAEQXjm3IlJwxKwExO/dqRcTPxICVCFmADWcsLFxI+U+EqAL26zkhNAntb1Uw17GgPGuSMRKynxg2sC3I4WkknJjjhWZuRnEDomINpR8+VWZHYKSH5YdTUjP4ugTZNWdnZkh9GMyIoIgiAIgmg4ZEYAmdEpZEbVQmZ05mb0B308PsqsjTcxAAAAAElFTkSuQmCC';
 
+// --- ANIMATION CONFIGURATION ---
+// Since your images are vertical columns, we slice them into frames.
+const animData = {
+    idle:   { img: idleImg,   frames: 9,  frameW: 16, frameH: 16, speed: 10 },
+    run:    { img: runImg,    frames: 14, frameW: 16, frameH: 16, speed: 5 },
+    attack: { img: attackImg, frames: 3,  frameW: 48, frameH: 48, speed: 5 },
+    damage: { img: damageImg, frames: 4,  frameW: 16, frameH: 16, speed: 8 },
+    dodge:  { img: dodgeImg,  frames: 6,  frameW: 32, frameH: 32, speed: 8 },
+    death:  { img: deathImg,  frames: 4,  frameW: 32, frameH: 32, speed: 10 },
+    jump:   { img: jumpImg,   frames: 9,  frameW: 16, frameH: 16, speed: 5 }
+};
+
 // --- GAME STATE ---
 let isPlaying = false;
 let isDead = false;
+let gameFrame = 0;
 let player = { x: W/2, y: H/2, size: 64, speed: 4, dir: 'down', attackTimer: 0, hp: 100, invulnTimer: 0, jumpTimer: 0, isMoving: false };
 let keys = { up: false, down: false, left: false, right: false };
 let mobileDir = null;
@@ -94,10 +107,8 @@ let camera = { x: 0, y: 0 };
 let fish = 0;
 let level = 1;
 
-// Dummy Enemy
 let enemy = { x: W/2 + 300, y: H/2, size: 30, speed: 1.5, hitTimer: 0 };
 
-// --- ROCKS (OBSTACLES) ---
 let rocks = [
     { x: W/2 - 150, y: H/2 - 150, w: 80, h: 80 },
     { x: W/2 + 100, y: H/2 - 200, w: 100, h: 100 },
@@ -106,16 +117,11 @@ let rocks = [
 ];
 
 function checkRockCollision(x, y) {
-    // If jumping, ignore rock collisions
     if (player.jumpTimer > 0) return false;
-    
-    const pW = 30; // Player collision box width
-    const pH = 30; // Player collision box height
+    const pW = 30; const pH = 30;
     for (let r of rocks) {
-        if (x + pW/2 > r.x - r.w/2 &&
-            x - pW/2 < r.x + r.w/2 &&
-            y + pH/2 > r.y - r.h/2 &&
-            y - pH/2 < r.y + r.h/2) {
+        if (x + pW/2 > r.x - r.w/2 && x - pW/2 < r.x + r.w/2 &&
+            y + pH/2 > r.y - r.h/2 && y - pH/2 < r.y + r.h/2) {
             return true;
         }
     }
@@ -154,17 +160,15 @@ document.getElementById('start').addEventListener('click', () => {
 
 function jump() {
     if(!isPlaying || isDead || player.jumpTimer > 0) return;
-    player.jumpTimer = 30; // Jump duration in frames (longer to clear rocks)
+    player.jumpTimer = 30;
 }
 
 function attack() {
     if(!isPlaying || isDead || player.jumpTimer > 0) return;
     player.attackTimer = 20; 
-    
-    // Check if we hit the enemy
     let dist = Math.hypot(enemy.x - player.x, enemy.y - player.y);
     if (dist < 100 && enemy.hitTimer <= 0) {
-        enemy.hitTimer = 60; // Enemy dies for 1 second
+        enemy.hitTimer = 60;
         fish += 10;
         document.getElementById('fish').innerText = fish;
     }
@@ -172,6 +176,7 @@ function attack() {
 
 function update() {
     if(!isPlaying || isDead) return;
+    gameFrame++; // Ticks the animation timer
     
     if (player.attackTimer > 0) player.attackTimer--;
     if (player.invulnTimer > 0) player.invulnTimer--;
@@ -185,11 +190,9 @@ function update() {
     if(keys.left || mobileDir === 'left') { dx = -1; player.dir = 'left'; player.isMoving = true; }
     if(keys.right || mobileDir === 'right') { dx = 1; player.dir = 'right'; player.isMoving = true; }
 
-    // Move with Rock Collision Checks (Slide along walls)
     if(player.isMoving) {
         let nextX = player.x + (dx * player.speed);
         let nextY = player.y + (dy * player.speed);
-        
         if (!checkRockCollision(nextX, player.y)) player.x = nextX;
         if (!checkRockCollision(player.x, nextY)) player.y = nextY;
     }
@@ -197,7 +200,6 @@ function update() {
     camera.x = player.x - W/2;
     camera.y = player.y - H/2;
 
-    // Enemy Logic
     if (enemy.hitTimer > 0) {
         enemy.hitTimer--;
         if (enemy.hitTimer <= 0) {
@@ -213,31 +215,39 @@ function update() {
             enemy.y += (edy / dist) * enemy.speed;
         }
 
-        // Jumping makes you invincible
         if (dist < 50 && player.invulnTimer <= 0 && player.jumpTimer <= 0) {
             player.hp -= 20;
             player.invulnTimer = 60;
             document.getElementById('hp-bar').style.width = Math.max(0, player.hp) + '%';
-            if (player.hp <= 0) {
-                isDead = true;
-            }
+            if (player.hp <= 0) isDead = true;
         }
     }
-
-    document.getElementById('lvl').innerText = level;
 }
 
-function drawSprite(img, sx, sy, facingLeft, jumpOffset) {
-    if (!img.complete) return;
-    let scale = 1.5;
-    let w = img.width * scale;
-    let h = img.height * scale;
-    
+// --- THE NEW ANIMATION ENGINE ---
+function drawAnimatedSprite(animName, sx, sy, facingLeft, jumpOffset) {
+    let anim = animData[animName];
+    if (!anim || !anim.img.complete) return;
+
+    // Calculate which frame we are on based on the gameFrame and animation speed
+    let currentFrame = Math.floor(gameFrame / anim.speed) % anim.frames;
+
+    // Source coordinates (which part of the image to crop)
+    let cropX = 0;
+    let cropY = currentFrame * anim.frameH;
+    let cropW = anim.frameW;
+    let cropH = anim.frameH;
+
+    // Destination scale (how big to draw it on screen)
+    let scale = 3; // Made it bigger since the frames are 16x16
+    let drawW = cropW * scale;
+    let drawH = cropH * scale;
+
     // Draw Shadow
     if (jumpOffset > 0) {
         ctx.fillStyle = 'rgba(0,0,0,0.5)';
         ctx.beginPath();
-        ctx.ellipse(sx, sy, w/3, h/6, 0, 0, Math.PI*2);
+        ctx.ellipse(sx, sy, drawW/3, drawH/6, 0, 0, Math.PI*2);
         ctx.fill();
     }
 
@@ -245,9 +255,10 @@ function drawSprite(img, sx, sy, facingLeft, jumpOffset) {
     if (facingLeft) {
         ctx.translate(sx, sy - jumpOffset);
         ctx.scale(-1, 1);
-        ctx.drawImage(img, -w / 2, -h, w, h);
+        // Draw the CROPPED frame, not the whole image
+        ctx.drawImage(anim.img, cropX, cropY, cropW, cropH, -drawW/2, -drawH, drawW, drawH);
     } else {
-        ctx.drawImage(img, sx - w / 2, sy - h - jumpOffset, w, h);
+        ctx.drawImage(anim.img, cropX, cropY, cropW, cropH, sx - drawW/2, sy - drawH - jumpOffset, drawW, drawH);
     }
     ctx.restore();
 }
@@ -256,7 +267,6 @@ function draw() {
     ctx.fillStyle = '#1a1a2e';
     ctx.fillRect(0,0,W,H);
 
-    // Grid
     ctx.strokeStyle = '#2d2d4e';
     ctx.lineWidth = 2;
     let offsetX = camera.x % 64;
@@ -264,64 +274,48 @@ function draw() {
     for(let x = -offsetX; x < W; x += 64) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
     for(let y = -offsetY; y < H; y += 64) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
-    // Draw Rocks
     for (let r of rocks) {
         let rx = r.x - camera.x;
         let ry = r.y - camera.y;
         
-        // Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
-        ctx.beginPath();
-        ctx.ellipse(rx, ry + r.h/2 - 10, r.w/2, r.h/4, 0, 0, Math.PI*2);
-        ctx.fill();
+        ctx.beginPath(); ctx.ellipse(rx, ry + r.h/2 - 10, r.w/2, r.h/4, 0, 0, Math.PI*2); ctx.fill();
         
-        // Rock Body
         ctx.fillStyle = '#4a4a5a';
-        ctx.beginPath();
-        ctx.roundRect(rx - r.w/2, ry - r.h/2, r.w, r.h, 15);
-        ctx.fill();
+        ctx.beginPath(); ctx.roundRect(rx - r.w/2, ry - r.h/2, r.w, r.h, 15); ctx.fill();
         
-        // Rock Highlights
         ctx.fillStyle = '#6a6a7a';
-        ctx.beginPath();
-        ctx.roundRect(rx - r.w/2 + 10, ry - r.h/2 + 10, r.w/2 - 5, r.h/2 - 5, 10);
-        ctx.fill();
+        ctx.beginPath(); ctx.roundRect(rx - r.w/2 + 10, ry - r.h/2 + 10, r.w/2 - 5, r.h/2 - 5, 10); ctx.fill();
     }
 
     let screenX = player.x - camera.x;
     let screenY = player.y - camera.y;
 
-    // Draw Enemy
     if (enemy.hitTimer <= 0) {
         let ex = enemy.x - camera.x;
         let ey = enemy.y - camera.y;
-        ctx.fillStyle = '#f00';
-        ctx.fillRect(ex - enemy.size/2, ey - enemy.size/2, enemy.size, enemy.size);
-        ctx.fillStyle = '#000';
-        ctx.fillRect(ex - 8, ey - 5, 4, 4);
-        ctx.fillRect(ex + 4, ey - 5, 4, 4);
+        ctx.fillStyle = '#f00'; ctx.fillRect(ex - enemy.size/2, ey - enemy.size/2, enemy.size, enemy.size);
+        ctx.fillStyle = '#000'; ctx.fillRect(ex - 8, ey - 5, 4, 4); ctx.fillRect(ex + 4, ey - 5, 4, 4);
     }
 
-    // --- ANIMATION STATE MACHINE ---
-    let currentImg = idleImg;
+    let currentAnim = 'idle';
     let jumpOffset = 0;
     
     if (isDead) {
-        currentImg = deathImg;
+        currentAnim = 'death';
     } else if (player.attackTimer > 0) {
-        currentImg = attackImg;
+        currentAnim = 'attack';
     } else if (player.jumpTimer > 0) {
-        currentImg = jumpImg;
-        // Calculate a smooth arc for the jump height
+        currentAnim = 'jump';
         let progress = (30 - player.jumpTimer) / 30;
-        jumpOffset = Math.sin(progress * Math.PI) * 60; // Jump 60 pixels high
+        jumpOffset = Math.sin(progress * Math.PI) * 60; 
     } else if (player.invulnTimer > 0) {
-        currentImg = damageImg; 
+        currentAnim = 'damage'; 
     } else if (player.isMoving) {
-        currentImg = runImg; 
+        currentAnim = 'run'; 
     }
 
-    drawSprite(currentImg, screenX, screenY, player.dir === 'left', jumpOffset);
+    drawAnimatedSprite(currentAnim, screenX, screenY, player.dir === 'left', jumpOffset);
 }
 
 function loop() { update(); draw(); requestAnimationFrame(loop); }
